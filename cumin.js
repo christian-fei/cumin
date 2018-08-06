@@ -5,21 +5,23 @@ const { promisify } = require('util')
 const log = (...args) => console.info(consolePrefix, ...args)
 
 module.exports = function (port, host, options) {
-  let redisArgs = arguments
+  const redisArgs = arguments
 
-  let nonBlockingClient = redis.createClient.apply(redis, redisArgs)
+  const nonBlockingClient = redis.createClient.apply(redis, redisArgs)
   let blockingClient
 
-  let redisBlpopTimeout = 1
+  const redisBlpopTimeout = 1
 
-  let alreadyListening = false
-  let killSignalReceived = false
-  let pendingTasks = 0
-  let killWaitTimeout = 20
+  const killWaitTimeout = 20
+  const state = {
+    alreadyListening: false,
+    killSignalReceived: false,
+    pendingTasks: 0
+  }
 
   function onKillSignal () {
-    if (!killSignalReceived) {
-      killSignalReceived = true
+    if (!state.killSignalReceived) {
+      state.killSignalReceived = true
       log('\n', 'Attempting clean shutdown...')
       log('To force shutdown, hit Ctrl+C again.')
       log('Waiting upto', redisBlpopTimeout, 'seconds for next chance to kill the redis connection...')
@@ -35,18 +37,18 @@ module.exports = function (port, host, options) {
 
   function attemptCleanShutdown () {
     log('Not reconnecting to redis because of kill signal received.')
-    if (pendingTasks === 0) {
+    if (state.pendingTasks === 0) {
       log('No pending tasks. Exiting now.')
       process.exit()
     } else {
-      log('Waiting for pending tasks to be completed. Pending count:', pendingTasks)
+      log('Waiting for pending tasks to be completed. Pending count:', state.pendingTasks)
     }
   }
 
   function continueListening (queueName, handler) {
     var promiseMode = (handler.length < 2)
 
-    if (killSignalReceived) return attemptCleanShutdown()
+    if (state.killSignalReceived) return attemptCleanShutdown()
 
     blockingClient.blpop(queueName, redisBlpopTimeout, function (err, data) {
       if (err) return console.log(err)
@@ -59,22 +61,22 @@ module.exports = function (port, host, options) {
         var queueItem = JSON.parse(data[1])
 
         var handlerOnComplete = function () {
-          pendingTasks--
+          state.pendingTasks--
 
           nonBlockingClient.hset('cuminmeta.' + bareQueueName, 'completed', Date.now())
           nonBlockingClient.publish('cumin.processed', data[1])
 
-          if (killSignalReceived && pendingTasks) {
-            log('Waiting for pending tasks to be completed. Pending count:', pendingTasks)
+          if (state.killSignalReceived && state.pendingTasks) {
+            log('Waiting for pending tasks to be completed. Pending count:', state.pendingTasks)
           }
 
-          if (killSignalReceived && !pendingTasks) {
+          if (state.killSignalReceived && !state.pendingTasks) {
             log('Pending tasks completed. Shutting down now.')
             process.exit()
           }
         }
 
-        pendingTasks++
+        state.pendingTasks++
 
         if (promiseMode) {
           handler(queueItem.data).then(handlerOnComplete)
@@ -120,7 +122,7 @@ module.exports = function (port, host, options) {
         throw new Error(consolePrefix, 'You must provide a hander to .listen.')
       }
 
-      if (alreadyListening) {
+      if (state.alreadyListening) {
         throw new Error(consolePrefix, 'You can only .listen once in an app. To listen to another queue, create another app.')
       }
 
@@ -130,7 +132,7 @@ module.exports = function (port, host, options) {
 
       process.on('SIGINT', onKillSignal)
       process.on('SIGTERM', onKillSignal)
-      alreadyListening = true
+      state.alreadyListening = true
 
       if (handler.length < 2) {
         console.log('Assuming that the handler returns a promise.')
