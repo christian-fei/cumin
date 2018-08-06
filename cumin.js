@@ -1,9 +1,10 @@
 const redis = require('redis')
 const { promisify } = require('util')
 
-const CONSOLE_PREFIX = '[cumin]'
+const CONSOLE_PREFIX = 'cumin'
 const QUEUE_PREFIX = 'cumin.'
-const log = (...args) => console.info(CONSOLE_PREFIX, ...args)
+const debug = require('debug')
+const log = debug(CONSOLE_PREFIX)
 
 module.exports = function (port, host, options) {
   const redisArgs = arguments

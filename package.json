@@ -10,6 +10,7 @@
   },
   "license": "MIT",
   "dependencies": {
+    "debug": "^3.1.0",
     "redis": "^2.8.0"
   },
   "keywords": [
@@ -23,6 +24,6 @@
     "mocha": "^5.2.0"
   },
   "scripts": {
-    "test": "NODE_ENV=test mocha --reporter spec"
+    "test": "DEBUG='cumin*' NODE_ENV=test mocha --reporter spec"
   }
 }
