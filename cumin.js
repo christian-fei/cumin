@@ -24,7 +24,7 @@ module.exports = function (port, host, options) {
       log('Attempting clean shutdown...')
       log('To force shutdown, hit Ctrl+C again.')
       log('Waiting upto', redisBlpopTimeoutInSeconds, 'seconds for next chance to kill the redis connection...')
-      setTimeout(function () {
+      setTimeout(() => {
         log('Forcing kill due to', killWaitTimeoutInSeconds, 'seconds timeout.')
         process.exit()
       }, killWaitTimeoutInSeconds * 1000)
@@ -59,7 +59,7 @@ module.exports = function (port, host, options) {
 
         const queueItem = JSON.parse(data[1])
 
-        const handlerOnComplete = function () {
+        const handlerOnComplete = () => {
           state.pendingTasks--
 
           nonBlockingClient.hset('cuminmeta.' + bareQueueName, 'completed', Date.now())
@@ -84,9 +84,7 @@ module.exports = function (port, host, options) {
         }
       }
 
-      process.nextTick(function () {
-        continueListening(queueName, handler)
-      })
+      process.nextTick(() => continueListening(queueName, handler))
     })
   }
 
