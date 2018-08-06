@@ -21,7 +21,7 @@ module.exports = function (port, host, options) {
   function onKillSignal () {
     if (!state.killSignalReceived) {
       state.killSignalReceived = true
-      log('\n', 'Attempting clean shutdown...')
+      log('Attempting clean shutdown...')
       log('To force shutdown, hit Ctrl+C again.')
       log('Waiting upto', redisBlpopTimeout, 'seconds for next chance to kill the redis connection...')
       setTimeout(function () {
@@ -29,7 +29,7 @@ module.exports = function (port, host, options) {
         process.exit()
       }, killWaitTimeout * 1000)
     } else {
-      log('\n', 'Forcing shutdown now.')
+      log('Forcing shutdown now.')
       setTimeout(process.exit, 500)
     }
   }
