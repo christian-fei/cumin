@@ -1,7 +1,8 @@
-var redis = require('redis')
-var consolePrefix = '[cumin]'
+const redis = require('redis')
+const consolePrefix = '[cumin]'
+const { promisify } = require('util')
 
-var promisify = require('util').promisify || function (x) { return x }
+const log = (...args) => console.info(consolePrefix, ...args)
 
 module.exports = function (port, host, options) {
   let redisArgs = arguments
@@ -19,26 +20,26 @@ module.exports = function (port, host, options) {
   function onKillSignal () {
     if (!killSignalReceived) {
       killSignalReceived = true
-      console.info('\n' + consolePrefix, 'Attempting clean shutdown...')
-      console.info(consolePrefix, 'To force shutdown, hit Ctrl+C again.')
-      console.info(consolePrefix, 'Waiting upto', redisBlpopTimeout, 'seconds for next chance to kill the redis connection...')
+      log('\n', 'Attempting clean shutdown...')
+      log('To force shutdown, hit Ctrl+C again.')
+      log('Waiting upto', redisBlpopTimeout, 'seconds for next chance to kill the redis connection...')
       setTimeout(function () {
-        console.info(consolePrefix, 'Forcing kill due to', killWaitTimeout, 'seconds timeout.')
+        log('Forcing kill due to', killWaitTimeout, 'seconds timeout.')
         process.exit()
       }, killWaitTimeout * 1000)
     } else {
-      console.info('\n' + consolePrefix, 'Forcing shutdown now.')
+      log('\n', 'Forcing shutdown now.')
       setTimeout(process.exit, 500)
     }
   }
 
   function attemptCleanShutdown () {
-    console.info(consolePrefix, 'Not reconnecting to redis because of kill signal received.')
+    log('Not reconnecting to redis because of kill signal received.')
     if (pendingTasks === 0) {
-      console.info(consolePrefix, 'No pending tasks. Exiting now.')
+      log('No pending tasks. Exiting now.')
       process.exit()
     } else {
-      console.info(consolePrefix, 'Waiting for pending tasks to be completed. Pending count:', pendingTasks)
+      log('Waiting for pending tasks to be completed. Pending count:', pendingTasks)
     }
   }
 
@@ -64,11 +65,11 @@ module.exports = function (port, host, options) {
           nonBlockingClient.publish('cumin.processed', data[1])
 
           if (killSignalReceived && pendingTasks) {
-            console.info(consolePrefix, 'Waiting for pending tasks to be completed. Pending count:', pendingTasks)
+            log('Waiting for pending tasks to be completed. Pending count:', pendingTasks)
           }
 
           if (killSignalReceived && !pendingTasks) {
-            console.info(consolePrefix, 'Pending tasks completed. Shutting down now.')
+            log('Pending tasks completed. Shutting down now.')
             process.exit()
           }
         }
@@ -132,7 +133,7 @@ module.exports = function (port, host, options) {
       alreadyListening = true
 
       if (handler.length < 2) {
-        console.log(consolePrefix, 'Assuming that the handler returns a promise.')
+        console.log('Assuming that the handler returns a promise.')
       }
 
       continueListening('cumin.' + queueName, handler)
