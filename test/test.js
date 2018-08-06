@@ -1,77 +1,76 @@
-var should = require("should"),
-	redisClient = require("redis").createClient(),
-	cuminCreator = require("../"),
-	cumin = cuminCreator();
+/* globals describe, it */
+const redisClient = require('redis').createClient()
+const cuminCreator = require('../')
+const cumin = cuminCreator()
+const assert = require('assert')
 
-describe(".enqueue", function() {
-	it("should enqueue a job", function(done) {
-		cumin.enqueue("test.list", {some: "task"}, function(err) {
-			should.not.exist(err);
+describe('.enqueue', () => {
+  it('should enqueue a job', done => {
+    cumin.enqueue('test.list', {some: 'task'}, err => {
+      assert.ifError(err)
 
-			redisClient.llen("cumin.test.list", function(err, len) {
-				len.should.equal(1);
+      redisClient.llen('cumin.test.list', (err, len) => {
+        assert.ifError(err)
+        assert.equal(len, 1)
 
-				redisClient.lpop("cumin.test.list", function(err, item) {
-					item = JSON.parse(item);
+        redisClient.lpop('cumin.test.list', (err, item) => {
+          assert.ifError(err)
 
-					item.byPid.should.be.a.Number;
-					item.byTitle.should.be.a.String;
-					item.queueName.should.equal("test.list");
-					item.date.should.be.a.Number;
-					(Date.now() - item.date).should.be.within(0, 500);
-					item.data.should.eql({some: "task"});
-					done();
-				});
-			});
-		}, 100);
-	});
-});
+          item = JSON.parse(item)
+          assert.equal(typeof item.byPid, 'number')
+          assert.equal(typeof item.byTitle, 'string')
+          assert.equal(typeof item.date, 'number')
+          assert.equal(item.queueName, 'test.list')
+          assert.ok(Date.now() - item.date > 0 && Date.now() - item.date < 500)
+          assert.deepEqual(item.data, {some: 'task'})
+          done()
+        })
+      })
+    }, 100)
+  })
+})
 
-describe(".listen", function() {
-	it("should listen to a list", function(done) {
-		cumin.enqueue("test.list", {some: "task"});
+describe('.listen', () => {
+  it('should listen to a list', done => {
+    cumin.enqueue('test.list', {some: 'task'})
 
-		cumin.listen("test.list", function(queueData, doneTask) {
-			queueData.should.eql({some: "task"});
-			doneTask();
-			done();
-		});
-	});
+    cumin.listen('test.list', (queueData, doneTask) => {
+      assert.deepEqual(queueData, {some: 'task'})
+      doneTask()
+      done()
+    })
+  })
 
-	it("should not listen to another list while already listening to the first", function() {
-		try {
-			cumin.listen("test.list2", function() {});
-		} catch(e) {
-			e.should.exist;
-			return;
-		}
+  it('should not listen to another list while already listening to the first', () => {
+    try {
+      cumin.listen('test.list2', () => {})
+      assert.fail('should have failed to listen')
+    } catch (e) {
+      assert.ok(e)
+    }
+  })
 
-		true.should.not.exist;	// Ensure that control flow doesn't reach here at all
-	});
+  it('should not even listen to the same list again', () => {
+    try {
+      cumin.listen('test.list', () => {})
+      assert.fail('should have failed to listen')
+    } catch (e) {
+      assert.ok(e)
+    }
+  })
 
-	it("should not even listen to the same list again", function() {
-		try {
-			cumin.listen("test.list", function() {});
-		} catch(e) {
-			e.should.exist;
-			return;
-		}
+  it('should enqueue with promises', done => {
+    cumin.enqueue('test.list3', { some: 'task' }).then((task) => {
+      done()
+    })
+  })
 
-		true.should.not.exist;	// Ensure that control flow doesn't reach here at all
-	});
-
-	it('should enqueue with promises', function(done) {
-		cumin.enqueue('test.list3', { some: 'task' }).then(function(task) {
-			done();
-		});
-	});
-
-	it('should listen with promises', function(done) {
-		var cumin = cuminCreator();
-		var delay = () => new Promise(resolve => setTimeout(resolve, 300));
-		cumin.listen('test.list3', async task => {
-			await delay();
-			done();
-		});
-	})
-});
+  it('should listen with promises', done => {
+    const cumin2 = cuminCreator()
+    const delay = () => new Promise((resolve, reject) => setTimeout(resolve, 300))
+    cumin2.listen('test.list3', async task => {
+      await delay()
+      done()
+    })
+  })
+})
