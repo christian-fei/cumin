@@ -1,8 +1,9 @@
 const redis = require('redis')
-const consolePrefix = '[cumin]'
 const { promisify } = require('util')
 
-const log = (...args) => console.info(consolePrefix, ...args)
+const CONSOLE_PREFIX = '[cumin]'
+const QUEUE_PREFIX = 'cumin.'
+const log = (...args) => console.info(CONSOLE_PREFIX, ...args)
 
 module.exports = function (port, host, options) {
   const redisArgs = arguments
@@ -52,7 +53,7 @@ module.exports = function (port, host, options) {
       if (err) return log(err)
 
       if (data) {
-        var bareQueueName = queueName.slice(('cumin.').length)
+        var bareQueueName = queueName.slice((QUEUE_PREFIX).length)
         nonBlockingClient.hset('cuminmeta.' + bareQueueName, 'lastDequeued', Date.now())
         nonBlockingClient.publish('cumin.dequeued', data[1])
 
@@ -107,21 +108,21 @@ module.exports = function (port, host, options) {
 
       nonBlockingClient.sadd('cuminqueues', queueName)
       nonBlockingClient.hset('cuminmeta.' + queueName, 'lastEnqueued', now)
-      nonBlockingClient.rpush('cumin.' + queueName, message)
+      nonBlockingClient.rpush(QUEUE_PREFIX + queueName, message)
       nonBlockingClient.publish('cumin.enqueued', message, done)
     }),
 
     listen: function (queueName, handler) {
       if (!queueName) {
-        throw new Error(consolePrefix, "Queue name must be provided. eg. 'emailQueue'.")
+        throw new Error(CONSOLE_PREFIX, "Queue name must be provided. eg. 'emailQueue'.")
       }
 
       if (!handler) {
-        throw new Error(consolePrefix, 'You must provide a hander to .listen.')
+        throw new Error(CONSOLE_PREFIX, 'You must provide a hander to .listen.')
       }
 
       if (state.alreadyListening) {
-        throw new Error(consolePrefix, 'You can only .listen once in an app. To listen to another queue, create another app.')
+        throw new Error(CONSOLE_PREFIX, 'You can only .listen once in an app. To listen to another queue, create another app.')
       }
 
       if (!blockingClient) {
@@ -136,7 +137,7 @@ module.exports = function (port, host, options) {
         log('Assuming that the handler returns a promise.')
       }
 
-      continueListening('cumin.' + queueName, handler)
+      continueListening(QUEUE_PREFIX + queueName, handler)
     }
   }
 }
