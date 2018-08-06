@@ -7,11 +7,9 @@ const log = (...args) => console.info(consolePrefix, ...args)
 module.exports = function (port, host, options) {
   const redisArgs = arguments
 
-  const nonBlockingClient = redis.createClient.apply(redis, redisArgs)
   let blockingClient
-
+  const nonBlockingClient = redis.createClient.apply(redis, redisArgs)
   const redisBlpopTimeout = 1
-
   const killWaitTimeout = 20
   const state = {
     alreadyListening: false,
@@ -50,7 +48,7 @@ module.exports = function (port, host, options) {
 
     if (state.killSignalReceived) return attemptCleanShutdown()
 
-    blockingClient.blpop(queueName, redisBlpopTimeout, function (err, data) {
+    blockingClient && blockingClient.blpop(queueName, redisBlpopTimeout, function (err, data) {
       if (err) return console.log(err)
 
       if (data) {
