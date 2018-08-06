@@ -10,8 +10,8 @@ module.exports = function (port, host, options) {
 
   let blockingClient
   const nonBlockingClient = redis.createClient.apply(redis, redisArgs)
-  const redisBlpopTimeout = 1
-  const killWaitTimeout = 20
+  const redisBlpopTimeoutInSeconds = 1
+  const killWaitTimeoutInSeconds = 20
   const state = {
     alreadyListening: false,
     killSignalReceived: false,
@@ -23,11 +23,11 @@ module.exports = function (port, host, options) {
       state.killSignalReceived = true
       log('Attempting clean shutdown...')
       log('To force shutdown, hit Ctrl+C again.')
-      log('Waiting upto', redisBlpopTimeout, 'seconds for next chance to kill the redis connection...')
+      log('Waiting upto', redisBlpopTimeoutInSeconds, 'seconds for next chance to kill the redis connection...')
       setTimeout(function () {
-        log('Forcing kill due to', killWaitTimeout, 'seconds timeout.')
+        log('Forcing kill due to', killWaitTimeoutInSeconds, 'seconds timeout.')
         process.exit()
-      }, killWaitTimeout * 1000)
+      }, killWaitTimeoutInSeconds * 1000)
     } else {
       log('Forcing shutdown now.')
       setTimeout(process.exit, 500)
@@ -49,7 +49,7 @@ module.exports = function (port, host, options) {
 
     if (state.killSignalReceived) return attemptCleanShutdown()
 
-    blockingClient && blockingClient.blpop(queueName, redisBlpopTimeout, function (err, data) {
+    blockingClient && blockingClient.blpop(queueName, redisBlpopTimeoutInSeconds, function (err, data) {
       if (err) return log(err)
 
       if (data) {
