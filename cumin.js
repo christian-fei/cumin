@@ -45,7 +45,7 @@ module.exports = function (port, host, options) {
   }
 
   function continueListening (queueName, handler) {
-    var promiseMode = (handler.length < 2)
+    const promiseMode = (handler.length < 2)
 
     if (state.killSignalReceived) return attemptCleanShutdown()
 
@@ -53,13 +53,13 @@ module.exports = function (port, host, options) {
       if (err) return log(err)
 
       if (data) {
-        var bareQueueName = queueName.slice((QUEUE_PREFIX).length)
+        const bareQueueName = queueName.slice((QUEUE_PREFIX).length)
         nonBlockingClient.hset('cuminmeta.' + bareQueueName, 'lastDequeued', Date.now())
         nonBlockingClient.publish('cumin.dequeued', data[1])
 
-        var queueItem = JSON.parse(data[1])
+        const queueItem = JSON.parse(data[1])
 
-        var handlerOnComplete = function () {
+        const handlerOnComplete = function () {
           state.pendingTasks--
 
           nonBlockingClient.hset('cuminmeta.' + bareQueueName, 'completed', Date.now())
@@ -96,8 +96,8 @@ module.exports = function (port, host, options) {
         throw new Error("Queue name must be provided. eg. 'emailQueue'.")
       }
 
-      var now = Date.now()
-      var message = JSON.stringify({
+      const now = Date.now()
+      const message = JSON.stringify({
         byPid: process.pid,
         byTitle: process.title,
         queueName: queueName,
