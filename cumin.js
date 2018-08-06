@@ -49,7 +49,7 @@ module.exports = function (port, host, options) {
     if (state.killSignalReceived) return attemptCleanShutdown()
 
     blockingClient && blockingClient.blpop(queueName, redisBlpopTimeout, function (err, data) {
-      if (err) return console.log(err)
+      if (err) return log(err)
 
       if (data) {
         var bareQueueName = queueName.slice(('cumin.').length)
@@ -133,7 +133,7 @@ module.exports = function (port, host, options) {
       state.alreadyListening = true
 
       if (handler.length < 2) {
-        console.log('Assuming that the handler returns a promise.')
+        log('Assuming that the handler returns a promise.')
       }
 
       continueListening('cumin.' + queueName, handler)
