@@ -3,5 +3,6 @@
 var cumin = require('../')()
 
 setInterval(function () {
+  console.log('-- enqueue')
   cumin.enqueue(process.argv[2] || 'populate-cache', {some: 'data'})
-}, 10)
+}, 250)
